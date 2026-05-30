@@ -1,0 +1,1 @@
+    ntotal     nfree     nwait nthrottle      2048      2048         0         0

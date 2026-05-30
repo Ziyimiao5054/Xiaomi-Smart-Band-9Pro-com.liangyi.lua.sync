@@ -1,0 +1,1 @@
+processor	: 0BogoMIPS	: 5.00cpu MHz		: 48.00Features	: half fastmult lpae idivt thumb edsp fpv5 fpsp vfpv3d16model name	: ARMv8-M rev 1 (v8ml)CPU architecture: 8MCPU implementer	: 0x63CPU variant	: 0x0CPU part	: 0x132CPU revision	: 1

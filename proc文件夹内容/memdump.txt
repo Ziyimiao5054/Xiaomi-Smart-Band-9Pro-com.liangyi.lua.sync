@@ -1,0 +1,1 @@
+usage: <used/free>used: dump all allocated nodefree: dump all free node
