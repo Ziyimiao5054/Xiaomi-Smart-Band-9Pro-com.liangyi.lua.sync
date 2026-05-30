@@ -1,0 +1,338 @@
+<template>
+  <div class="page">
+    <scroll class="content-full" scroll-y="true" bounces="true">
+      <div class="header-area">
+        <img src="/common/hd.png" class="header-bg" />
+        <text class="hd-time">{{ nowTime }}</text>
+        <text class="hd-title">设备信息</text>
+        <img src="/common/back.png" @click="goBack" class="hd-back" />
+        <img src="/common/More_B@1x.png" @click="goAbout" class="hd-more" />
+      </div>
+      <div class="pill-header">
+        <div class="pill-more-wrap" @click="goAbout">
+          <div class="pill-more"></div>
+        </div>
+      </div>
+
+      <div class="scroll-inner">
+
+        <!-- 使用说明（首次启动置顶蓝色） -->
+        <div class="card card-primary" onclick="goHelp" if="{{isFirstLaunch}}">
+          <div class="card-left">
+            <text class="card-label">使用说明</text>
+            <text class="card-sub card-sub-primary">初次使用请点击</text>
+          </div>
+        </div>
+
+        <!-- CPU 监控 -->
+        <div class="card" onclick="goCpuchart">
+          <div class="card-left">
+            <text class="card-label">CPU 监控</text>
+            <text class="card-sub">CPU 使用率折线图</text>
+          </div>
+        </div>
+
+        <!-- 设备信息 -->
+        <div class="card" onclick="goInfo">
+          <div class="card-left">
+            <text class="card-label">设备信息</text>
+            <text class="card-sub">{{ deviceInfo.product }}</text>
+          </div>
+        </div>
+
+        <!-- CPU 信息 -->
+        <div class="card" onclick="goCpulog">
+          <div class="card-left">
+            <text class="card-label">CPU 信息</text>
+            <text class="card-sub">{{ sysInfo.cpuFreq }}</text>
+          </div>
+        </div>
+
+        <!-- 内存总计 -->
+        <div class="card" onclick="goMeminfo">
+          <div class="card-left">
+            <text class="card-label">内存总计</text>
+            <text class="card-sub">{{ sysInfo.memTotal }}</text>
+          </div>
+        </div>
+
+        <!-- 内存已用 -->
+        <div class="card" onclick="goMeminfo">
+          <div class="card-left">
+            <text class="card-label">内存已用</text>
+            <text class="card-sub">{{ sysInfo.memUsed }}</text>
+          </div>
+        </div>
+
+        <!-- 内存可用 -->
+        <div class="card" onclick="goMeminfo">
+          <div class="card-left">
+            <text class="card-label">内存可用</text>
+            <text class="card-sub">{{ sysInfo.memFree }}</text>
+          </div>
+        </div>
+
+        <!-- 系统版本 -->
+        <div class="card" onclick="goDatalog">
+          <div class="card-left">
+            <text class="card-label">系统版本</text>
+            <text class="card-sub">{{ sysInfo.version }}</text>
+          </div>
+        </div>
+
+        <!-- 使用说明（非首次置底） -->
+        <div class="card" onclick="goHelp" if="{{!isFirstLaunch}}">
+          <div class="card-left">
+            <text class="card-label">使用说明</text>
+            <text class="card-sub">安装步骤与功能介绍</text>
+          </div>
+        </div>
+
+
+
+        <div class="spacer"></div>
+      </div>
+    </scroll>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import file from "@system.file"
+import device from "@system.device"
+
+var SYSINFO_FILE = "internal://files/system_info.json"
+
+export default {
+  private: {
+    deviceInfo: {
+      model: "加载中...",
+      product: "-",
+      osType: "-",
+      osVersionName: "-",
+      totalStorage: 0,
+      availStorage: 0,
+      totalStorageStr: "-",
+      availStorageStr: "-"
+    },
+    sysInfo: {
+      cpuInfo: "等待数据...",
+      cpuFreq: "",
+      memTotal: "等待数据...",
+      memUsed: "等待数据...",
+      memFree: "等待数据...",
+      version: "等待数据...",
+      updateTime: "-"
+    },
+    nowTime: "00:00",
+    timer: null,
+    refreshTimer: null,
+    isFirstLaunch: true
+  },
+
+  onInit() {
+    var self = this
+    self.updateTime()
+    self.timer = setInterval(function() {
+      self.updateTime()
+    }, 1000)
+    self.checkFirstLaunch()
+    self.loadDeviceInfo()
+    self.loadSysInfo()
+    self.loadInterval()
+  },
+
+  loadInterval() {
+    var self = this
+    self.refreshTimer = setInterval(function() {
+      self.loadSysInfo()
+    }, 1000)
+  },
+
+  onDestroy() {
+    clearInterval(this.timer)
+    clearInterval(this.refreshTimer)
+  },
+
+  updateTime() {
+    var d = new Date()
+    var hh = ("0" + d.getHours()).slice(-2)
+    var mm = ("0" + d.getMinutes()).slice(-2)
+    this.nowTime = hh + ":" + mm
+  },
+
+  fmtSize(bytes) {
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + " GB"
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + " MB"
+    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + " KB"
+    return bytes + " B"
+  },
+
+  loadDeviceInfo() {
+    var self = this
+    device.getInfo({
+      success: function(ret) {
+        self.deviceInfo.model = ret.model || "未知"
+        var product = ret.product || ret.brand || ret.manufacturer || "-"
+        product = product.replace("Xiaomi Smart Band", "小米手环")
+        self.deviceInfo.product = product
+        self.deviceInfo.osType = ret.osType || "-"
+        self.deviceInfo.osVersionName = ret.osVersionName || "-"
+      },
+      fail: function() {
+        self.deviceInfo.model = "读取失败"
+      }
+    })
+    device.getTotalStorage({
+      success: function(ret) {
+        self.deviceInfo.totalStorage = ret.totalStorage
+        self.deviceInfo.totalStorageStr = self.fmtSize(ret.totalStorage)
+      },
+      fail: function() {
+        self.deviceInfo.totalStorageStr = "读取失败"
+      }
+    })
+    device.getAvailableStorage({
+      success: function(ret) {
+        self.deviceInfo.availStorage = ret.availableStorage
+        self.deviceInfo.availStorageStr = self.fmtSize(ret.availableStorage)
+      },
+      fail: function() {
+        self.deviceInfo.availStorageStr = "读取失败"
+      }
+    })
+  },
+
+  loadSysInfo() {
+    var self = this
+    file.readText({
+      uri: SYSINFO_FILE,
+      success: function(data) {
+        try {
+          var json = JSON.parse(data.text)
+          var d = new Date()
+          var ts = ("0" + d.getHours()).slice(-2) + ":" +
+                   ("0" + d.getMinutes()).slice(-2) + ":" +
+                   ("0" + d.getSeconds()).slice(-2)
+
+          self.sysInfo.cpuInfo = json.cpu ? (json.cpu.info || "无数据") : "无数据"
+          self.sysInfo.cpuFreq = json.cpu && json.cpu.freq ? json.cpu.freq : ""
+
+          if (json.memory && json.memory.total) {
+            self.sysInfo.memTotal = json.memory.total.total_mb !== undefined ? json.memory.total.total_mb + " MB" : "无数据"
+            self.sysInfo.memUsed = json.memory.total.used_mb !== undefined ? json.memory.total.used_mb + " MB" : "无数据"
+            self.sysInfo.memFree = json.memory.total.free_mb !== undefined ? json.memory.total.free_mb + " MB" : "无数据"
+          }
+
+          self.sysInfo.version = json.version || "无数据"
+          self.sysInfo.updateTime = ts
+        } catch (e) {}
+      },
+      fail: function() {}
+    })
+  },
+
+  checkFirstLaunch() {
+    var self = this
+    file.access({
+      uri: "internal://files/.first_launch_done",
+      success: function() {
+        self.isFirstLaunch = false
+      },
+      fail: function() {
+        self.isFirstLaunch = true
+        file.writeText({
+          uri: "internal://files/.first_launch_done",
+          text: "1",
+          append: false,
+          success: function() {},
+          fail: function() {}
+        })
+      }
+    })
+  },
+
+  goHelp() {
+    router.push({ uri: "/pages/help" })
+  },
+
+  goMeminfo() {
+    router.push({ uri: "/pages/memory" })
+  },
+
+  goDatalog() {
+    router.push({ uri: "/pages/datalog" })
+  },
+
+  goCpuchart() {
+    router.push({ uri: "/pages/cpuchart" })
+  },
+
+  goCpulog() {
+    router.push({ uri: "/pages/cpulog" })
+  },
+
+  goInfo() {
+    router.push({ uri: "/pages/info" })
+  },
+
+  goAbout() {
+    router.push({ uri: "/pages/about" })
+  },
+
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.page { width: 336px; height: 480px; background-color: #000000; }
+.content-full { width: 336px; height: 480px; flex-direction: column; }
+.header-area { width: 336px; height: 102px; position: relative; }
+.header-bg { width: 336px; height: 102px; }
+.hd-title { position: absolute; left: 78px; top: 35px; width: 180px; height: 42px; text-align: center; font-size: 32px; font-weight: bold; color: #ffffff; }
+.hd-back { position: absolute; left: 6px; top: 6px; width: 72px; height: 72px; }
+.hd-time { position: absolute; left: 78px; top: 7px; width: 180px; height: 32px; text-align: center; font-size: 24px; font-weight: bold; color: rgba(255,255,255,0.6); }
+.hd-more { position: absolute; left: 258px; top: 6px; width: 72px; height: 72px; }
+.pill-header { display: none; }
+.scroll-inner { margin-top: -2px; padding: 0 6px 20px 6px; flex-direction: column; }
+.card { width: 324px; height: 112px; margin-top: 8px; background-color: #262626; border-radius: 36px; flex-direction: row; align-items: center; padding-left: 20px; padding-right: 20px; }
+.card-left { flex-direction: column; flex: 1; }
+.card-label { font-size: 32px; line-height: 40px; font-weight: bold; color: #ffffff; lines: 1; }
+.card-sub { font-size: 28px; line-height: 37px; font-weight: bold; color: rgba(255,255,255,0.6); margin-top: 4px; lines: 1; }
+.card-primary { background-color: #0D6EFF; }
+.card-sub-primary { color: rgba(255,255,255,0.7); }
+.card-disabled { background-color: #1a1a1a; }
+.card-label-disabled { color: #666666; }
+.card-sub-disabled { color: #444444; }
+.spacer { height: 20px; }
+
+@media (shape: pill-shaped) and (max-width: 100) {
+  .page { width: 192px; height: 490px; }
+  .content-full { width: 192px; height: 490px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 192px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 102px; height: 72px; border-radius: 36px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 102px; height: 72px; border-radius: 36px; background-image: url(/common/More胶囊.png); background-size: 102px 72px; }
+  .scroll-inner { padding: 0 4px 16px 4px; }
+  .card { width: 184px; height: 110px; border-radius: 27px; padding-left: 14px; padding-right: 16px; margin-top: 8px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 6px; }
+  .spacer { height: 16px; }
+}
+
+@media (shape: pill-shaped) and (min-width: 101) {
+  .page { width: 212px; height: 520px; }
+  .content-full { width: 212px; height: 520px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 212px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 102px; height: 72px; border-radius: 36px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 102px; height: 72px; background-image: url(/common/More胶囊.png); background-size: 102px 72px; border-radius: 36px; }
+  .scroll-inner { padding: 0 4px 16px 4px; }
+  .card { width: 204px; height: 110px; border-radius: 27px; padding-left: 14px; padding-right: 16px; margin-top: 8px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 9px; }
+  .spacer { height: 16px; }
+}
+</style>

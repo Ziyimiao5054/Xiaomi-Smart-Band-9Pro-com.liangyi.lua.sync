@@ -1,0 +1,190 @@
+<template>
+  <div class="page">
+    <scroll class="content-full" scroll-y="true" bounces="true">
+
+      <div class="header-area">
+        <img src="/common/hd.png" class="header-bg" />
+        <text class="hd-time">{{ nowTime }}</text>
+        <text class="hd-title">设备信息</text>
+        <img src="/common/back.png" @click="goBack" class="hd-back" />
+      </div>
+      <div class="pill-header">
+        <div class="pill-more-wrap" @click="goBack">
+          <div class="pill-more"></div>
+        </div>
+      </div>
+
+      <div class="scroll-inner">
+
+        <div class="card"><div class="card-left"><text class="card-label">品牌</text><text class="card-sub">{{ info.brand }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">生产商</text><text class="card-sub">{{ info.manufacturer }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">型号</text><text class="card-sub">{{ info.model }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">设备代号</text><text class="card-sub">{{ info.product }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">操作系统</text><text class="card-sub">{{ info.osType }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">系统版本名</text><text class="card-sub">{{ info.osVersionName }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">系统版本号</text><text class="card-sub">{{ info.osVersionCode }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">平台版本名</text><text class="card-sub">{{ info.platformVersionName }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">平台版本号</text><text class="card-sub">{{ info.platformVersionCode }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">系统语言</text><text class="card-sub">{{ info.language }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">系统地区</text><text class="card-sub">{{ info.region }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">API 版本</text><text class="card-sub">{{ info.apiLevel }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">屏幕宽</text><text class="card-sub">{{ info.screenWidth }} px</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">屏幕高</text><text class="card-sub">{{ info.screenHeight }} px</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">屏幕密度</text><text class="card-sub">{{ info.screenDensity }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">屏幕形状</text><text class="card-sub">{{ info.screenShape }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">设备类型</text><text class="card-sub">{{ info.deviceType }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">设备标识</text><text class="card-sub card-sub-multi">{{ info.deviceId }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">序列号</text><text class="card-sub card-sub-multi">{{ info.serial }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">总存储</text><text class="card-sub">{{ info.totalStorageStr }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">可用存储</text><text class="card-sub">{{ info.availStorageStr }}</text></div></div>
+        <div class="card"><div class="card-left"><text class="card-label">更新时间</text><text class="card-sub">{{ info.updateTime }}</text></div></div>
+
+        <div class="spacer"></div>
+      </div>
+    </scroll>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import device from "@system.device"
+
+export default {
+  private: {
+    nowTime: "00:00",
+    timer: null,
+    info: {
+      brand: "加载中...", manufacturer: "加载中...", model: "加载中...", product: "加载中...",
+      osType: "加载中...", osVersionName: "加载中...", osVersionCode: "加载中...",
+      platformVersionName: "加载中...", platformVersionCode: "加载中...",
+      language: "加载中...", region: "加载中...", apiLevel: "加载中...",
+      screenWidth: "加载中...", screenHeight: "加载中...", screenDensity: "加载中...",
+      screenShape: "加载中...", deviceType: "加载中...",
+      deviceId: "加载中...", serial: "加载中...",
+      totalStorageStr: "加载中...", availStorageStr: "加载中...",
+      updateTime: "-"
+    }
+  },
+
+  onInit() {
+    var self = this
+    self.updateTime()
+    self.timer = setInterval(function() { self.updateTime() }, 1000)
+    self.loadAll()
+  },
+
+  onDestroy() {
+    clearInterval(this.timer)
+  },
+
+  updateTime() {
+    var d = new Date()
+    this.nowTime = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2)
+  },
+
+  fmtSize(bytes) {
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + " GB"
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + " MB"
+    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + " KB"
+    return bytes + " B"
+  },
+
+  loadAll() {
+    var self = this
+    function ts() {
+      var d = new Date()
+      return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2)
+    }
+
+    device.getInfo({
+      success: function(ret) {
+        self.info.brand = ret.brand || "无"; self.info.manufacturer = ret.manufacturer || "无"
+        self.info.model = ret.model || "无"
+        var product = ret.product || ret.brand || ret.manufacturer || "无"
+        product = product.replace("Xiaomi Smart Band", "小米手环")
+        self.info.product = product; self.info.osType = ret.osType || "无"
+        self.info.osVersionName = ret.osVersionName || "无"
+        self.info.osVersionCode = ret.osVersionCode !== undefined ? String(ret.osVersionCode) : "无"
+        self.info.platformVersionName = ret.platformVersionName || "无"
+        self.info.platformVersionCode = ret.platformVersionCode !== undefined ? String(ret.platformVersionCode) : "无"
+        self.info.language = ret.language || "无"; self.info.region = ret.region || "无"
+        self.info.apiLevel = ret.APILevel !== undefined ? String(ret.APILevel) : "无"
+        self.info.screenWidth = ret.screenWidth !== undefined ? String(ret.screenWidth) : "无"
+        self.info.screenHeight = ret.screenHeight !== undefined ? String(ret.screenHeight) : "无"
+        self.info.screenDensity = ret.screenDensity !== undefined ? String(ret.screenDensity) : "无"
+        self.info.screenShape = ret.screenShape || "无"; self.info.deviceType = ret.deviceType || "无"
+        self.info.updateTime = ts()
+      },
+      fail: function() { self.info.brand = "读取失败" }
+    })
+
+    device.getDeviceId({
+      success: function(data) { self.info.deviceId = data.deviceId || "无"; self.info.updateTime = ts() },
+      fail: function() { self.info.deviceId = "获取失败（无权限）" }
+    })
+
+    device.getSerial({
+      success: function(data) { self.info.serial = data.serial || "无"; self.info.updateTime = ts() },
+      fail: function() { self.info.serial = "获取失败（无权限）" }
+    })
+
+    device.getTotalStorage({
+      success: function(ret) { self.info.totalStorageStr = self.fmtSize(ret.totalStorage); self.info.updateTime = ts() },
+      fail: function() { self.info.totalStorageStr = "读取失败" }
+    })
+
+    device.getAvailableStorage({
+      success: function(ret) { self.info.availStorageStr = self.fmtSize(ret.availableStorage); self.info.updateTime = ts() },
+      fail: function() { self.info.availStorageStr = "读取失败" }
+    })
+  },
+
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.page { width: 336px; height: 480px; background-color: #000000; }
+.content-full { width: 336px; height: 480px; flex-direction: column; }
+.header-area { width: 336px; height: 102px; position: relative; }
+.header-bg { width: 336px; height: 102px; }
+.hd-time { position: absolute; left: 78px; top: 7px; width: 180px; height: 32px; text-align: center; font-size: 24px; font-weight: bold; color: rgba(255,255,255,0.6); }
+.hd-title { position: absolute; left: 78px; top: 35px; width: 180px; height: 42px; text-align: center; font-size: 32px; font-weight: bold; color: #ffffff; }
+.hd-back { position: absolute; left: 6px; top: 6px; width: 72px; height: 72px; }
+.pill-header { display: none; }
+.scroll-inner { margin-top: -2px; padding: 0 6px 20px 6px; flex-direction: column; }
+.card { width: 324px; height: 112px; margin-top: 8px; background-color: #262626; border-radius: 36px; flex-direction: row; align-items: center; padding-left: 20px; padding-right: 20px; }
+.card-left { flex-direction: column; flex: 1; }
+.card-label { font-size: 32px; line-height: 40px; font-weight: bold; color: #ffffff; lines: 1; }
+.card-sub { font-size: 28px; line-height: 37px; font-weight: bold; color: rgba(255,255,255,0.6); margin-top: 4px; lines: 1; }
+.card-sub-multi { font-size: 24px; line-height: 32px; font-weight: bold; color: rgba(255,255,255,0.6); margin-top: 4px; lines: 4; word-break: break-all; }
+.spacer { height: 20px; }
+@media (shape: pill-shaped) and (max-width: 100) {
+  .page { width: 192px; height: 490px; }
+  .content-full { width: 192px; height: 490px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 192px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 92px; height: 72px; border-radius: 32px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 92px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 92px 72px; border-radius: 32px; }
+  .scroll-inner { padding: 0 8px 16px 8px; }
+  .card { width: 176px; height: 110px; border-radius: 27px; padding-left: 20px; padding-right: 12px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 9px; }
+  .spacer { height: 16px; }
+}
+@media (shape: pill-shaped) and (min-width: 101) {
+  .page { width: 212px; height: 520px; }
+  .content-full { width: 212px; height: 520px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 212px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 102px; height: 72px; border-radius: 36px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 102px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 102px 72px; border-radius: 36px; }
+  .scroll-inner { padding: 0 8px 16px 8px; }
+  .card { width: 196px; height: 110px; border-radius: 27px; padding-left: 20px; padding-right: 12px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 9px; }
+  .spacer { height: 16px; }
+}
+</style>

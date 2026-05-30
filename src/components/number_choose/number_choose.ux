@@ -1,0 +1,159 @@
+<template>
+  <div show="{{display}}" class="number_choose" style="{{style}}">
+    <!-- 减号按钮（支持点击和长按�?-->
+    <img static onclick="minus" onlongpress="minusL" ontouchend="end"
+         src="/common/minis.png"
+         class="nc-btn nc-btn-minus"/>
+    <!-- 加号按钮（支持点击和长按�?-->
+    <img static onclick="add" onlongpress="addL" ontouchend="end"
+         src="/common/plus.png"
+         class="nc-btn nc-btn-plus"/>
+    <!-- 中间数值显�?-->
+    <text class="nc-value">{{ value_ + unit }}</text>
+    <!-- 名称显示 -->
+    <text class="nc-name">{{ name }}</text>
+  </div>
+</template>
+
+<script>
+var interval = null    /* 长按定时器（模块级变量，避免作用域问题） */
+
+export default {
+  props: {
+    max: { default: 100 },          /* 最大�?*/
+    min: { default: 0 },            /* 最小�?*/
+    step: { default: 1 },           /* 步长 */
+    value: { default: 0 },          /* 当前�?*/
+    name: { default: "名称" },      /* 显示名称 */
+    unit: { type: String, default: "" },  /* 数值单�?*/
+    style: { default: "" },         /* 外部传入的内联样�?*/
+    display: { default: true }      /* 是否显示 */
+  },
+
+  data() {
+    return {
+      value_: this.value    /* 内部可修改的数值副�?*/
+    }
+  },
+
+  /** 组件初始化：同步props中的初始�?*/
+  onInit() {
+    this.value_ = this.value
+  },
+
+  /** 点击加号：每次增加一个步�?*/
+  add() {
+    if (this.value_ < this.max) {
+      this.value_ += parseFloat(this.step)
+    }
+    this.$emit("change", { value: this.value_ })
+  },
+
+  /** 点击减号：每次减少一个步�?*/
+  minus() {
+    if (this.value_ > this.min) {
+      this.value_ -= parseFloat(this.step)
+    }
+    this.$emit("change", { value: this.value_ })
+  },
+
+  /** 长按加号：每50ms快速递增 */
+  addL() {
+    this.end()
+    interval = setInterval(() => { this.add() }, 50)
+  },
+
+  /** 长按减号：每50ms快速递减 */
+  minusL() {
+    this.end()
+    interval = setInterval(() => { this.minus() }, 50)
+  },
+
+  /** 停止长按：清除定时器 */
+  end() {
+    if (interval) {
+      clearInterval(interval)
+      interval = null
+    }
+  }
+}
+</script>
+
+<style>
+/* ====== 数字选择器组件容�?====== */
+/* 整体水平居中布局，撑满底部工具栏宽度 */
+.number_choose {
+  width: 336px;                /* 方屏全宽 */
+  height: 102px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ====== 加减号按�?====== */
+.nc-btn {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+}
+.nc-btn-minus {
+  left: 6px;                   /* 减号在左�?*/
+}
+.nc-btn-plus {
+  left: 258px;                 /* 加号在右端，336-72-6=258 */
+}
+
+/* ====== 中间数�?====== */
+.nc-value {
+  position: absolute;
+  left: 78px;                  /* 居中�?8+180/2 �?168 */
+  top: 39px;
+  width: 180px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+/* ====== 名称（数值上方的标签�?====== */
+.nc-name {
+  position: absolute;
+  left: 78px;
+  top: 1px;                    /* 紧贴顶部 */
+  width: 180px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #999999;              /* 灰色文字 */
+}
+
+/* ========== 胶囊屏适配（通用，不分宽度） ========== */
+@media (shape: pill-shaped) {
+  .number_choose {
+    width: 192px;              /* 胶囊屏全�?*/
+    height: 102px;
+  }
+  .nc-btn {
+    width: 52px;               /* 胶囊屏按钮缩�?*/
+    height: 52px;
+  }
+  .nc-btn-minus {
+    left: 4px;                 /* 胶囊屏减号左�?*/
+  }
+  .nc-btn-plus {
+    left: 136px;               /* 192-52-4=136 */
+  }
+  .nc-value {
+    left: 56px;                /* 胶囊屏数值居中位 */
+    top: 30px;
+    width: 80px;
+    font-size: 22px;
+  }
+  .nc-name {
+    left: 56px;
+    top: 1px;
+    width: 80px;
+    font-size: 18px;
+  }
+}
+</style>

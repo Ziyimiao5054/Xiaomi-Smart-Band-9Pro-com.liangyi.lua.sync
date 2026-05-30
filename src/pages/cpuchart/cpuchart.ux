@@ -1,0 +1,191 @@
+<template>
+  <div class="page">
+    <scroll class="content-full" scroll-y="true" bounces="true">
+      <div class="header-area">
+        <img src="/common/hd.png" class="header-bg" />
+        <text class="hd-time">{{ nowTime }}</text>
+        <text class="hd-title">CPU 监控</text>
+        <img src="/common/back.png" @click="goBack" class="hd-back" />
+      </div>
+      <div class="pill-header">
+        <div class="pill-more-wrap" @click="goBack">
+          <div class="pill-more"></div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <text class="chart-title">CPU 使用率趋势</text>
+        <div class="chart-box">
+          <div class="g0"></div><div class="g1"></div><div class="g2"></div>
+          <text class="gl gl0">75%</text><text class="gl gl1">50%</text><text class="gl gl2">25%</text>
+          <div for="{{chartBars}}" style="position: absolute; left: {{$item.x}}px; top: {{$item.y}}px; width: 2px; height: {{$item.h}}px; background-color: #ffffff;"></div>
+          <div for="{{chartDots}}" style="position: absolute; left: {{$item.x}}px; top: {{$item.y}}px; width: 4px; height: 4px; background-color: #ffffff;"></div>
+        </div>
+        <div class="card" style="margin-top: 8px;">
+          <div class="card-left">
+            <text class="card-label">当前 CPU</text>
+            <text class="card-sub">{{ cpuPercent }}%</text>
+          </div>
+        </div>
+        <div class="status-hint" if="{{showHint}}">
+          <text class="status-text">等待数据...</text>
+        </div>
+      </div>
+    </scroll>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import file from "@system.file"
+
+var CHART_LEFT = 12
+var CHART_TOP = 28
+var CHART_W = 312
+var CHART_H = 150
+var CHART_BOTTOM = CHART_TOP + CHART_H
+var MAX_POINTS = 50
+
+export default {
+  private: {
+    nowTime: "00:00",
+    cpuPercent: "--",
+    cpuHistory: [],
+    chartBars: [],
+    chartDots: [],
+    showHint: true
+  },
+
+  onInit() {
+    var self = this
+    self.updateTime()
+    self.loadCpuData()
+  },
+
+  onShow() {
+    var self = this
+    self.clockTimer = setInterval(function() { self.updateTime() }, 1000)
+    self.dataTimer = setInterval(function() { self.loadCpuData() }, 1000)
+  },
+
+  onHide() {
+    clearInterval(this.clockTimer)
+    clearInterval(this.dataTimer)
+  },
+
+  onDestroy() {
+    clearInterval(this.clockTimer)
+    clearInterval(this.dataTimer)
+  },
+
+  updateTime() {
+    var d = new Date()
+    this.nowTime = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2)
+  },
+
+  computeChart(points) {
+    var spacing = Math.floor(CHART_W / (MAX_POINTS - 1))
+    var bars = []
+    var dots = []
+    var count = points.length
+
+    for (var i = 0; i < count; i++) {
+      var pct = Math.min(Math.max(points[i], 0), 100)
+      var py = CHART_BOTTOM - (pct / 100) * CHART_H
+      var px = CHART_LEFT + i * spacing
+
+      /* 竖线：从数据点到图底部 */
+      bars.push({ x: px, y: Math.floor(py), h: Math.ceil(CHART_BOTTOM - py) })
+
+      /* 数据点方块 */
+      dots.push({ x: px - 2, y: Math.floor(py) - 2 })
+    }
+
+    return { bars: bars, dots: dots }
+  },
+
+  loadCpuData() {
+    var self = this
+    file.readText({
+      uri: "internal://files/system_info.json",
+      success: function(data) {
+        try {
+          var json = JSON.parse(data.text)
+          if (json.cpu && json.cpu.load) {
+            self.showHint = false
+            var pct = parseInt(json.cpu.load) || 0
+            self.cpuPercent = pct
+            var history = self.cpuHistory
+            history.push(pct)
+            if (history.length > MAX_POINTS) {
+              history.splice(0, history.length - MAX_POINTS)
+            }
+            self.cpuHistory = history
+            var chart = self.computeChart(history)
+            self.chartBars = chart.bars
+            self.chartDots = chart.dots
+          }
+        } catch(e) {}
+      },
+      fail: function() {}
+    })
+  },
+
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.page { width: 336px; height: 480px; background-color: #000000; }
+.content-full { width: 336px; height: 480px; flex-direction: column; }
+.header-area { width: 336px; height: 102px; position: relative; }
+.header-bg { width: 336px; height: 102px; }
+.hd-time { position: absolute; left: 78px; top: 7px; width: 180px; height: 32px; text-align: center; font-size: 24px; font-weight: bold; color: rgba(255,255,255,0.6); }
+.hd-title { position: absolute; left: 78px; top: 35px; width: 180px; height: 42px; text-align: center; font-size: 32px; font-weight: bold; color: #ffffff; }
+.hd-back { position: absolute; left: 6px; top: 6px; width: 72px; height: 72px; }
+.pill-header { display: none; }
+.chart-wrap { width: 336px; flex-direction: column; padding: 0 10px; }
+.chart-title { font-size: 18px; color: #ffffff; margin-top: 4px; margin-left: 12px; lines: 1; }
+.chart-box { width: 324px; height: 180px; margin-top: 6px; position: relative; }
+.g0, .g1, .g2 { position: absolute; left: 12px; width: 312px; height: 1px; background-color: #222222; }
+.g0 { top: 65px; } .g1 { top: 103px; } .g2 { top: 140px; }
+.gl { position: absolute; left: 0; width: 24px; font-size: 11px; color: rgba(255,255,255,0.3); text-align: center; }
+.gl0 { top: 58px; } .gl1 { top: 96px; } .gl2 { top: 133px; }
+.card { width: 324px; height: 112px; margin-top: 8px; background-color: #262626; border-radius: 36px; flex-direction: row; align-items: center; padding-left: 20px; padding-right: 20px; }
+.card-left { flex-direction: column; flex: 1; }
+.card-label { font-size: 32px; line-height: 40px; font-weight: bold; color: #ffffff; lines: 1; }
+.card-sub { font-size: 28px; line-height: 37px; font-weight: bold; color: rgba(255,255,255,0.6); margin-top: 4px; lines: 1; }
+.status-hint { margin-top: 20px; padding: 0 12px; }
+.status-text { font-size: 24px; color: #666666; text-align: center; lines: 3; }
+@media (shape: pill-shaped) and (max-width: 100) {
+  .page { width: 192px; height: 490px; }
+  .content-full { width: 192px; height: 490px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 192px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 92px; height: 72px; border-radius: 32px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 92px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 92px 72px; border-radius: 32px; }
+  .chart-wrap { width: 192px; padding: 0 4px; }
+  .chart-title { font-size: 16px; margin-left: 6px; }
+  .chart-box { width: 184px; height: 170px; }
+  .g0, .g1, .g2 { left: 6px; width: 184px; }
+  .card { width: 176px; height: 110px; border-radius: 27px; padding-left: 14px; padding-right: 16px; margin-top: 8px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 6px; }
+}
+@media (shape: pill-shaped) and (min-width: 101) {
+  .page { width: 212px; height: 520px; }
+  .content-full { width: 212px; height: 520px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 212px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 102px; height: 72px; border-radius: 36px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 102px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 102px 72px; border-radius: 36px; }
+  .chart-wrap { width: 212px; padding: 0 4px; }
+  .chart-title { font-size: 16px; margin-left: 6px; }
+  .chart-box { width: 204px; height: 170px; }
+  .g0, .g1, .g2 { left: 6px; width: 204px; }
+  .card { width: 196px; height: 110px; border-radius: 27px; padding-left: 14px; padding-right: 16px; margin-top: 8px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 9px; }
+}
+</style>

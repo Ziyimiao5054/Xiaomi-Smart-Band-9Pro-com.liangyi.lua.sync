@@ -1,0 +1,12 @@
+<script>
+export default {
+  /** 应用创建时的生命周期回调 */
+  onCreate() {
+    console.log("memtest app created")
+  },
+  /** 应用销毁时的生命周期回�?*/
+  onDestroy() {
+    console.log("memtest app destroyed")
+  }
+}
+</script>

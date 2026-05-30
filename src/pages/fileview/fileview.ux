@@ -1,0 +1,170 @@
+<template>
+  <div class="page">
+    <scroll id="scrollId" class="content-full" scroll-y="true" bounces="true" onclick="onTxtClick">
+      <div show="{{showToolbar}}" class="header-area">
+        <img src="/common/hd.png" class="header-bg" />
+        <text class="hd-time">{{ nowTime }}</text>
+        <text class="hd-title">文件浏览</text>
+        <img src="/common/back.png" @click="goBack" class="hd-back" />
+      </div>
+      <div show="{{showToolbar}}" class="pill-header">
+        <div class="pill-more-wrap" @click="goBack">
+          <div class="pill-more"></div>
+        </div>
+      </div>
+
+      <div class="text-container">
+        <text class="loading-text" show="{{loading}}">解析中...</text>
+        <text class="log-text" style="font-size: {{fontSize}}px; line-height: {{lineHeight}}px;">{{ dirText }}</text>
+      </div>
+    </scroll>
+    <img show="{{showToolbar}}" class="bt-bar" src="/common/bt.png" />
+    <number_choose show="{{showToolbar}}" class="num-choose" max="50" min="20" step="1" unit="px" value="{{fontSize}}" name="字体大小" @change="onFontChange"></number_choose>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import file from "@system.file"
+
+var FILE_TREE_PATH = "internal://files/file_tree.json"
+
+export default {
+  private: {
+    nowTime: "00:00", timer: null,
+    dirText: "加载中...", loading: true,
+    showToolbar: true, fontSize: 28, lineHeight: 36
+  },
+
+  onInit() {
+    var self = this
+    self.updateTime()
+    self.timer = setInterval(function() { self.updateTime() }, 1000)
+    self.loadTree()
+  },
+
+  onDestroy() { clearInterval(this.timer) },
+
+  updateTime() {
+    var d = new Date()
+    this.nowTime = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2)
+  },
+
+  loadTree() {
+    var self = this
+    self.loading = true
+    self.dirText = "正在读取 ls -R / 数据..."
+    file.readText({
+      uri: FILE_TREE_PATH,
+      success: function(data) {
+        try {
+          var json = JSON.parse(data.text)
+          if (json.raw && json.raw.length > 0) {
+            self.dirText = self.renderRaw(json.raw)
+          } else {
+            self.dirText = "文件树数据为空"
+          }
+        } catch(e) {
+          self.dirText = "解析失败: " + (e.message || "未知错误")
+        }
+        self.loading = false
+      },
+      fail: function() {
+        self.dirText = "等待数据...\n请先运行系统信息采集表盘"
+        self.loading = false
+      }
+    })
+  },
+
+  renderRaw(raw) {
+    var t = ""
+    var pos = 0
+    var regex = /\/([^\s:]*):\s*/g
+    var m
+    while ((m = regex.exec(raw)) !== null) {
+      var p = "/" + m[1]
+      p = p.replace(/\/+/g, "/")
+      t += p + "\n"
+      var colonAt = raw.indexOf(":", m.index)
+      var start = colonAt + 1
+      var nextMatch = regex.exec(raw)
+      regex.lastIndex = m.index + 1
+      var end = nextMatch ? nextMatch.index : raw.length
+      if (end <= start) end = raw.length
+      var rest = raw.substring(start, end).trim()
+      if (rest) {
+        var entries = rest.split(/\s+/)
+        for (var i = 0; i < entries.length; i++) {
+          t += "  " + entries[i] + "\n"
+        }
+      }
+      t += "\n"
+    }
+    return t
+  },
+
+  onTxtClick() { this.showToolbar = !this.showToolbar },
+
+  onFontChange(e) {
+    this.fontSize = e.detail.value
+    this.lineHeight = parseInt((-0.01) * (this.fontSize * this.fontSize) + 1.62 * this.fontSize - 3.23)
+    if (this.lineHeight < this.fontSize + 4) this.lineHeight = this.fontSize + 4
+  },
+
+  goBack() { router.back() }
+}
+</script>
+
+<style>
+.page { width: 336px; height: 480px; background-color: #000000; }
+.content-full { width: 336px; height: 480px; flex-direction: column; }
+.header-area { width: 336px; height: 102px; position: relative; }
+.header-bg { width: 336px; height: 102px; }
+.hd-time { position: absolute; left: 78px; top: 7px; width: 180px; height: 32px; text-align: center; font-size: 24px; font-weight: bold; color: rgba(255,255,255,0.6); }
+.hd-title { position: absolute; left: 78px; top: 35px; width: 180px; height: 42px; text-align: center; font-size: 32px; font-weight: bold; color: #ffffff; }
+.hd-back { position: absolute; left: 6px; top: 6px; width: 72px; height: 72px; }
+.pill-header { display: none; }
+.nav-bar { margin: 4px 6px 0 6px; }
+.nav-btn { width: 324px; height: 56px; background-color: #333333; border-radius: 28px; flex-direction: row; align-items: center; justify-content: center; }
+.nav-btn { font-size: 28px; color: #ffaa00; font-weight: bold; }
+.text-container { padding: 6px 16px 20px 16px; width: 336px; flex-direction: column; }
+.path-text { font-size: 22px; color: #0D6EFF; font-weight: bold; margin-bottom: 4px; lines: 1; }
+.loading-text { font-size: 24px; color: #ffaa00; margin-top: 20px; text-align: center; }
+.log-text { width: 304px; text-align: left; color: #ffffff; font-weight: bold; word-break: break-all; }
+.bt-bar { position: absolute; left: 0; top: 378px; width: 336px; height: 102px; }
+.num-choose { position: absolute; top: 402px; }
+@media (shape: pill-shaped) and (max-width: 100) {
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 192px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 92px; height: 72px; border-radius: 32px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 92px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 92px 72px; border-radius: 32px; }
+  .page { width: 192px; height: 490px; }
+  .content-full { width: 192px; height: 490px; }
+  .header-area { width: 192px; height: 80px; }
+  .header-bg { width: 192px; height: 80px; }
+  .hd-title { width: 192px; top: 22px; font-size: 22px; }
+  .hd-back { left: 4px; top: 4px; width: 52px; height: 52px; }
+  .nav-btn { width: 176px; }
+  .text-container { padding: 6px 10px 20px 10px; width: 192px; }
+  .log-text { width: 172px; }
+  .bt-bar { top: 388px; width: 192px; height: 102px; }
+  .num-choose { top: 412px; }
+}
+@media (shape: pill-shaped) and (min-width: 101) {
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 212px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 102px; height: 72px; border-radius: 36px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 102px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 102px 72px; border-radius: 36px; }
+  .page { width: 212px; height: 520px; }
+  .content-full { width: 212px; height: 520px; }
+  .header-area { width: 212px; height: 80px; }
+  .header-bg { width: 212px; height: 80px; }
+  .hd-title { width: 212px; top: 22px; font-size: 22px; }
+  .hd-back { left: 4px; top: 4px; width: 52px; height: 52px; }
+  .nav-btn { width: 196px; }
+  .text-container { padding: 6px 10px 20px 10px; width: 212px; }
+  .log-text { width: 192px; }
+  .bt-bar { top: 418px; width: 212px; height: 102px; }
+  .num-choose { top: 442px; }
+}
+</style>

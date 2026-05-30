@@ -1,0 +1,220 @@
+<template>
+  <div class="page">
+    <scroll class="content-full" scroll-y="true" bounces="true">
+
+      <div class="header-area">
+        <img src="/common/hd.png" class="header-bg" />
+        <text class="hd-time">{{ nowTime }}</text>
+        <text class="hd-title">高级设置</text>
+        <img src="/common/back.png" @click="goBack" class="hd-back" />
+      </div>
+      <div class="pill-header">
+        <div class="pill-more-wrap" @click="goBack">
+          <div class="pill-more"></div>
+        </div>
+      </div>
+
+      <div class="scroll-inner">
+
+        <!-- 500ms -->
+        <div class="card {{c500}}" onclick="selectInterval(500)">
+          <div class="card-left">
+            <text class="card-label {{l500}}">500 ms</text>
+            <text class="card-sub {{s500}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <!-- 600ms -->
+        <div class="card {{c600}}" onclick="selectInterval(600)">
+          <div class="card-left">
+            <text class="card-label {{l600}}">600 ms</text>
+            <text class="card-sub {{s600}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <!-- 800ms -->
+        <div class="card {{c800}}" onclick="selectInterval(800)">
+          <div class="card-left">
+            <text class="card-label {{l800}}">800 ms</text>
+            <text class="card-sub {{s800}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <!-- 1000ms -->
+        <div class="card {{c1000}}" onclick="selectInterval(1000)">
+          <div class="card-left">
+            <text class="card-label {{l1000}}">1000 ms</text>
+            <text class="card-sub {{s1000}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <!-- 1500ms -->
+        <div class="card {{c1500}}" onclick="selectInterval(1500)">
+          <div class="card-left">
+            <text class="card-label {{l1500}}">1500 ms</text>
+            <text class="card-sub {{s1500}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <!-- 2000ms -->
+        <div class="card {{c2000}}" onclick="selectInterval(2000)">
+          <div class="card-left">
+            <text class="card-label {{l2000}}">2000 ms</text>
+            <text class="card-sub {{s2000}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <!-- 2500ms -->
+        <div class="card {{c2500}}" onclick="selectInterval(2500)">
+          <div class="card-left">
+            <text class="card-label {{l2500}}">2500 ms</text>
+            <text class="card-sub {{s2500}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <!-- 3000ms -->
+        <div class="card {{c3000}}" onclick="selectInterval(3000)">
+          <div class="card-left">
+            <text class="card-label {{l3000}}">3000 ms</text>
+            <text class="card-sub {{s3000}}">数据刷新间隔</text>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+      </div>
+    </scroll>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import file from "@system.file"
+
+var CONFIG_FILE = "internal://files/bridge_config.json"
+
+export default {
+  private: {
+    nowTime: "00:00",
+    timer: null,
+    interval: 3000,
+    c500: "", l500: "", s500: "",
+    c600: "", l600: "", s600: "",
+    c800: "", l800: "", s800: "",
+    c1000: "", l1000: "", s1000: "",
+    c1500: "", l1500: "", s1500: "",
+    c2000: "", l2000: "", s2000: "",
+    c2500: "", l2500: "", s2500: "",
+    c3000: "", l3000: "", s3000: ""
+  },
+
+  onInit() {
+    var self = this
+    self.updateTime()
+    self.timer = setInterval(function() { self.updateTime() }, 1000)
+    self.loadConfig()
+  },
+
+  onDestroy() {
+    clearInterval(this.timer)
+  },
+
+  updateTime() {
+    var d = new Date()
+    this.nowTime = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2)
+  },
+
+  loadConfig() {
+    var self = this
+    file.readText({
+      uri: CONFIG_FILE,
+      success: function(data) {
+        try {
+          var json = JSON.parse(data.text)
+          if (json.interval) self.interval = json.interval
+        } catch(e) {}
+        self.updateHighlights()
+      },
+      fail: function() {
+        self.updateHighlights()
+      }
+    })
+  },
+
+  updateHighlights() {
+    var v = this.interval
+    var vals = [500, 600, 800, 1000, 1500, 2000, 2500, 3000]
+    for (var i = 0; i < vals.length; i++) {
+      var isActive = (v === vals[i])
+      this["c" + vals[i]] = isActive ? "card-active" : ""
+      this["l" + vals[i]] = isActive ? "card-label-active" : ""
+      this["s" + vals[i]] = isActive ? "card-sub-active" : ""
+    }
+  },
+
+  selectInterval(val) {
+    if (val === this.interval) return
+    this.interval = val
+    this.updateHighlights()
+    var config = JSON.stringify({ interval: val })
+    file.writeText({
+      uri: CONFIG_FILE,
+      text: config,
+      append: false,
+      success: function() {},
+      fail: function() {}
+    })
+  },
+
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.page { width: 336px; height: 480px; background-color: #000000; }
+.content-full { width: 336px; height: 480px; flex-direction: column; }
+.header-area { width: 336px; height: 102px; position: relative; }
+.header-bg { width: 336px; height: 102px; }
+.hd-time { position: absolute; left: 78px; top: 7px; width: 180px; height: 32px; text-align: center; font-size: 24px; font-weight: bold; color: rgba(255,255,255,0.6); }
+.hd-title { position: absolute; left: 78px; top: 35px; width: 180px; height: 42px; text-align: center; font-size: 32px; font-weight: bold; color: #ffffff; }
+.hd-back { position: absolute; left: 6px; top: 6px; width: 72px; height: 72px; }
+.pill-header { display: none; }
+.scroll-inner { margin-top: -2px; padding: 0 6px 20px 6px; flex-direction: column; }
+.card { width: 324px; height: 112px; margin-top: 8px; background-color: #262626; border-radius: 36px; flex-direction: row; align-items: center; padding-left: 20px; padding-right: 20px; }
+.card-left { flex-direction: column; flex: 1; }
+.card-label { font-size: 32px; line-height: 40px; font-weight: bold; color: #ffffff; lines: 1; }
+.card-sub { font-size: 28px; line-height: 37px; font-weight: bold; color: rgba(255,255,255,0.6); margin-top: 4px; lines: 1; }
+.card-primary { background-color: #0D6EFF; }
+.card-sub-primary { color: rgba(255,255,255,0.7); }
+.card-active { background-color: #0D6EFF; }
+.card-label-active { color: #ffffff; }
+.card-sub-active { color: rgba(255,255,255,0.7); }
+.spacer { height: 20px; }
+@media (shape: pill-shaped) and (max-width: 100) {
+  .page { width: 192px; height: 490px; }
+  .content-full { width: 192px; height: 490px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 192px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 92px; height: 72px; border-radius: 32px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 92px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 92px 72px; border-radius: 32px; }
+  .scroll-inner { padding: 0 8px 16px 8px; }
+  .card { width: 176px; height: 110px; border-radius: 27px; padding-left: 20px; padding-right: 12px; margin-top: 8px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 9px; }
+  .spacer { height: 16px; }
+}
+@media (shape: pill-shaped) and (min-width: 101) {
+  .page { width: 212px; height: 520px; }
+  .content-full { width: 212px; height: 520px; }
+  .header-area { display: none; }
+  .pill-header { display: flex; width: 212px; height: 92px; flex-direction: column; align-items: center; justify-content: flex-start; }
+  .pill-more-wrap { width: 102px; height: 72px; border-radius: 36px; flex-direction: row; justify-content: center; align-items: center; margin-top: 10px; }
+  .pill-more { width: 102px; height: 72px; background-image: url(/common/Back_胶囊.png); background-size: 102px 72px; border-radius: 36px; }
+  .scroll-inner { padding: 0 8px 16px 8px; }
+  .card { width: 196px; height: 110px; border-radius: 27px; padding-left: 20px; padding-right: 12px; margin-top: 8px; }
+  .card-label { font-size: 32px; line-height: 38px; }
+  .card-sub { font-size: 28px; line-height: 34px; margin-top: 9px; }
+  .spacer { height: 16px; }
+}
+</style>

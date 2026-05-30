@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-16" ?>
+<FaceProject DeviceType="367">
+    <Screen Title="设备信息获取表盘" Bitmap="preview.png">
+        <Widget Shape="34" Name="app__lua%2FLua%2FLua.lua" X="0" Y="0" Width="336" Height="480" Alpha="0" />
+    </Screen>
+</FaceProject>

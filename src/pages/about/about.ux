@@ -1,0 +1,46 @@
+<template>
+  <div class="page">
+    <div class="fullscreen-bg">
+      <img src="/common/about.png" class="about-img" />
+      <img src="/common/back.png" @click="goBack" class="hd-back" />
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+export default {
+  private: { nowTime: "00:00", timer: null },
+  onInit() {
+    var self = this
+    self.updateTime()
+    self.timer = setInterval(function() { self.updateTime() }, 1000)
+  },
+  onDestroy() { clearInterval(this.timer) },
+  updateTime() {
+    var d = new Date()
+    this.nowTime = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2)
+  },
+  goBack() { router.back() }
+}
+</script>
+
+<style>
+.page { width: 336px; height: 480px; background-color: #000000; }
+.fullscreen-bg { width: 336px; height: 480px; position: relative; }
+.about-img { width: 336px; height: 480px; }
+.hd-back { position: absolute; left: 6px; top: 6px; width: 72px; height: 72px; }
+
+@media (shape: pill-shaped) and (max-width: 100) {
+  .page { width: 192px; height: 490px; }
+  .fullscreen-bg { width: 192px; height: 490px; }
+  .about-img { width: 192px; height: 490px; }
+  .hd-back { left: 4px; top: 4px; width: 52px; height: 52px; }
+}
+@media (shape: pill-shaped) and (min-width: 101) {
+  .page { width: 212px; height: 520px; }
+  .fullscreen-bg { width: 212px; height: 520px; }
+  .about-img { width: 212px; height: 520px; }
+  .hd-back { left: 4px; top: 4px; width: 52px; height: 52px; }
+}
+</style>
